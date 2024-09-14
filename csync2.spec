@@ -54,7 +54,7 @@ It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 
 %build
 export CPPFLAGS="-I/usr/include"
-export RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wno-format-truncation -Wno-misleading-indentation -Wno-mismatched-dealloc"
+export RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wno-format-truncation -Wno-misleading-indentation"
 export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 if ! [ -f configure ]; then ./autogen.sh; fi
 %configure --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \

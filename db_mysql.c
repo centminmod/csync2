@@ -33,9 +33,6 @@
 #if defined(HAVE_MYSQL) || defined(HAVE_MARIADB)
 #include <mysql/mysql.h>
 #include <mysql/mysqld_error.h>
-#else
-#error "Neither MySQL nor MariaDB support is enabled"
-#endif
 
 static struct db_mysql_fns {
 	MYSQL *(*mysql_init_fn) (MYSQL *);
