@@ -100,14 +100,10 @@ private_librsync:
 		echo "Error: librsync source file not found: $(librsync_source_file)"; \
 		exit 1; \
 	fi
-	tar xvzf $(librsync_source_file) -C $(builddir) | head -n1 | cut -f1 -d/ > librsync.dir
-	@if [ ! -s librsync.dir ]; then \
-		echo "Error: Failed to extract librsync source"; \
-		exit 1; \
-	fi
-	mkdir -p $(builddir)/`cat librsync.dir`/build
-	cd $(builddir)/`cat librsync.dir`/build && \
-		cmake .. \
+	mkdir -p librsync_build
+	tar xvzf $(librsync_source_file) -C librsync_build --strip-components=1
+	cd librsync_build && \
+		cmake . \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_C_FLAGS="$(CFLAGS) -flto" \
 		-DCMAKE_EXE_LINKER_FLAGS="$(LDFLAGS) -flto" \
@@ -115,9 +111,9 @@ private_librsync:
 		-DBUILD_SHARED_LIBS=OFF \
 		-DENABLE_COMPRESSION=ON \
 		-DENABLE_TRACE=OFF
-	make -C $(builddir)/`cat librsync.dir`/build
-	make -C $(builddir)/`cat librsync.dir`/build install
-	cp $(abs_builddir)/librsync-install/lib/librsync.a $(builddir)/`cat librsync.dir`/libprivatersync.a
+	make -C librsync_build
+	make -C librsync_build install
+	cp $(abs_builddir)/librsync-install/lib/librsync.a $(abs_builddir)/libprivatersync.a
 	touch private_librsync
 
 private_libsqlite:
