@@ -27,9 +27,6 @@ BuildRequires:  openssl
 BuildRequires:  pkgconfig
 BuildRequires:  sqlite-devel
 Requires:       sqlite-libs
-Requires(post): systemd
-Requires(preun): systemd
-Requires(postun): systemd
 Requires:       openssl
 Requires:       sqlite
 Requires:       sqlite-libs
@@ -62,9 +59,11 @@ if ! [ -f configure ]; then ./autogen.sh; fi
 
 make %{?_smp_mflags}
 
-%preun 
+%preun
 systemctl --no-reload disable csync2.socket >/dev/null 2>&1 || :
 systemctl stop csync2.socket >/dev/null 2>&1 || :
+systemctl --no-reload disable csync2@.service >/dev/null 2>&1 || :
+systemctl stop csync2@.service >/dev/null 2>&1 || :
 
 %postun 
 systemctl daemon-reload >/dev/null 2>&1 || :
@@ -75,6 +74,7 @@ mkdir -p %{buildroot}%{_docdir}/csync2
 mkdir -p %{buildroot}%{_sysconfdir}/csync2
 install -D -m 644 csync2.cfg %{buildroot}%{_sysconfdir}/csync2/csync2.cfg
 install -D -m 644 csync2.socket %{buildroot}%{_unitdir}/csync2.socket
+install -D -m 644 csync2@.service %{buildroot}%{_unitdir}/csync2@.service
 install -m 644 AUTHORS %{buildroot}%{_docdir}/csync2/AUTHORS
 install -m 644 AUTHORS.adoc %{buildroot}%{_docdir}/csync2/AUTHORS.adoc
 install -m 644 README %{buildroot}%{_docdir}/csync2/README
@@ -93,10 +93,12 @@ make clean
 systemctl preset csync2.socket >/dev/null 2>&1 || :
 
 %post
-if ! grep -q "^csync2" %{_sysconfdir}/services ; then
-     echo "csync2          30865/tcp" >>%{_sysconfdir}/services
-fi
 systemctl daemon-reload >/dev/null 2>&1 || :
+systemctl preset csync2.socket >/dev/null 2>&1 || :
+systemctl preset csync2@.service >/dev/null 2>&1 || :
+if ! grep -q "^csync2" %{_sysconfdir}/services ; then
+    echo "csync2          30865/tcp" >>%{_sysconfdir}/services
+fi
 
 %files
 %config(noreplace) %{_sysconfdir}/csync2/csync2.cfg
@@ -114,6 +116,7 @@ systemctl daemon-reload >/dev/null 2>&1 || :
 %{_sbindir}/csync2
 %{_sbindir}/csync2-compare
 %{_unitdir}/csync2.socket
+%{_unitdir}/csync2@.service
 %{_var}/lib/csync2
 
 %changelog
