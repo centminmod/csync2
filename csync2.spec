@@ -56,20 +56,47 @@ curl -L %{librsync_url} -o librsync-%{librsync_version}.tar.gz
 %{?suse_update_config:%{suse_update_config}}
 
 %build
+# Function to display config.log
+display_config_log() {
+    echo "Contents of config.log:"
+    cat config.log
+}
+
+# Set up environment variables
 export CC=gcc
 export CPPFLAGS="-I/usr/include -I%{_builddir}/%{name}-master/librsync-install/include"
-export RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wno-format-truncation -Wno-misleading-indentation"
-export CFLAGS="$RPM_OPT_FLAGS -flto -I/usr/kerberos/include"
-export LDFLAGS="$RPM_OPT_FLAGS -flto -L%{_builddir}/%{name}-master -L%{_builddir}/%{name}-master/librsync-install/lib64 -L%{_builddir}/%{name}-master/librsync-install/lib"
+export CFLAGS="-O2 -g -pipe -Wall -fexceptions -fstack-protector-strong -fasynchronous-unwind-tables"
+export LDFLAGS="-L%{_builddir}/%{name}-master -L%{_builddir}/%{name}-master/librsync-install/lib64 -L%{_builddir}/%{name}-master/librsync-install/lib"
 export LIBS="-lprivatersync"
 export PKG_CONFIG_PATH="%{_builddir}/%{name}-master/librsync-install/lib/pkgconfig:$PKG_CONFIG_PATH"
 
-if ! [ -f configure ]; then ./autogen.sh; fi
+# Test if the compiler works
+echo "int main() { return 0; }" > test.c
+if ! $CC $CFLAGS test.c -o test; then
+    echo "Error: Unable to compile a simple C program. Check your compiler installation."
+    exit 1
+fi
+
+# Debug: Test each flag individually
+for flag in $CFLAGS; do
+    echo "Testing flag: $flag"
+    if ! $CC $flag test.c -o test; then
+        echo "Problematic flag: $flag"
+    fi
+done
+
+# Debug: Print all environment variables
+env
+
+if ! [ -f configure ]; then 
+    ./autogen.sh || { echo "autogen.sh failed"; display_config_log; exit 1; }
+fi
+
 %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
   --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
-  --with-librsync-source=$(pwd)/librsync-%{librsync_version}.tar.gz
+  --with-librsync-source=$(pwd)/librsync-%{librsync_version}.tar.gz || { echo "configure failed"; display_config_log; exit 1; }
 
-make %{?_smp_mflags}
+make %{?_smp_mflags} || { echo "make failed"; display_config_log; exit 1; }
 
 %preun
 systemctl --no-reload disable csync2.socket >/dev/null 2>&1 || :
