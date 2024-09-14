@@ -137,14 +137,14 @@ then
         MYSQL_LIBS=`$MYSQL_CONFIG --libs`
         AC_SUBST([MYSQL_CFLAGS])
         AC_SUBST([MYSQL_LIBS])
-        AC_DEFINE([HAVE_MYSQL], 1, [Define if MySQL/MariaDB support is wanted])
+        AC_DEFINE([HAVE_MYSQL], 1, [Define if MySQL support is wanted])
         DB_TYPE="MySQL"
     ], [test -n "$MARIADB_CONFIG"], [
         MYSQL_CFLAGS=`$MARIADB_CONFIG --cflags`
         MYSQL_LIBS=`$MARIADB_CONFIG --libs`
         AC_SUBST([MYSQL_CFLAGS])
         AC_SUBST([MYSQL_LIBS])
-        AC_DEFINE([HAVE_MYSQL], 1, [Define if MySQL/MariaDB support is wanted])
+        AC_DEFINE([HAVE_MARIADB], 1, [Define if MariaDB support is wanted])
         DB_TYPE="MariaDB"
     ], [
         AC_MSG_ERROR([Neither mysql_config nor mariadb_config found. Install MySQL or MariaDB development files.])
