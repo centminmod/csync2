@@ -97,9 +97,19 @@ cert:
 
 private_librsync:
 	tar xvzf $(librsync_source_file) | cut -f1 -d/ | sed '1 p; d;' > librsync.dir
-	test -s librsync.dir && cd $$( cat librsync.dir ) && ./configure --enable-static --disable-shared
-	make -C $$( cat librsync.dir )
-	cp $$( cat librsync.dir )/.libs/librsync.a $$( cat librsync.dir )/libprivatersync.a
+	mkdir -p $$( cat librsync.dir )/build
+	cd $$( cat librsync.dir )/build && \
+		cmake .. \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_FLAGS="$(CFLAGS) -flto" \
+		-DCMAKE_EXE_LINKER_FLAGS="$(LDFLAGS) -flto" \
+		-DCMAKE_INSTALL_PREFIX=$(abs_builddir)/librsync-install \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DENABLE_COMPRESSION=ON \
+		-DENABLE_TRACE=OFF
+	make -C $$( cat librsync.dir )/build
+	make -C $$( cat librsync.dir )/build install
+	cp $(abs_builddir)/librsync-install/lib/librsync.a $$( cat librsync.dir )/libprivatersync.a
 	touch private_librsync
 
 private_libsqlite:

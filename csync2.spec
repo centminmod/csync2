@@ -13,7 +13,9 @@ Name:           csync2
 Version: 2.1
 Release: 1%{?dist}
 URL:            https://github.com/centminmod/csync2#readme
+%define librsync_version 2.3.4
 Source0: %{name}-%{version}.tar.gz
+Source1: https://github.com/librsync/librsync/releases/download/v%{librsync_version}/librsync-%{librsync_version}.tar.gz
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -25,6 +27,7 @@ BuildRequires:  hostname
 # openssl required at build time due to rpmlint checks which run postinstall script which uses openssl
 BuildRequires:  openssl
 BuildRequires:  pkgconfig
+BuildRequires:  cmake
 BuildRequires:  sqlite-devel
 Requires:       sqlite-libs
 Requires:       openssl
@@ -55,7 +58,8 @@ export RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wno-format-truncation -Wno-misleading-inde
 export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 if ! [ -f configure ]; then ./autogen.sh; fi
 %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
-  --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name}
+  --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
+  --with-librsync-source=%{_sourcedir}/librsync-%{librsync_version}.tar.gz
 
 make %{?_smp_mflags}
 
