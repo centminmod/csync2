@@ -129,17 +129,17 @@ fi
     exit 1;
   }
 
-# If the above fails, try without custom librsync
-# Uncomment the following lines if needed:
-# if [ $? -ne 0 ]; then
-#     echo "Trying configure without custom librsync..."
-#     %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
-#       --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} || {
-#         echo "configure failed again. Contents of config.log:";
-#         cat config.log;
-#         exit 1;
-#       }
-# fi
+If the above fails, try without custom librsync
+Uncomment the following lines if needed:
+if [ $? -ne 0 ]; then
+    echo "Trying configure without custom librsync..."
+    %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
+      --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} || {
+        echo "configure failed again. Contents of config.log:";
+        cat config.log;
+        exit 1;
+      }
+fi
 
 make %{?_smp_mflags} || { echo "make failed"; display_config_log; exit 1; }
 
