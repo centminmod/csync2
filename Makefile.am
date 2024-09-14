@@ -96,9 +96,17 @@ cert:
 ## hack for building private librsync and private libsqlite ##
 
 private_librsync:
-	tar xvzf $(librsync_source_file) | cut -f1 -d/ | sed '1 p; d;' > librsync.dir
-	mkdir -p $$( cat librsync.dir )/build
-	cd $$( cat librsync.dir )/build && \
+	@if [ ! -f "$(librsync_source_file)" ]; then \
+		echo "Error: librsync source file not found: $(librsync_source_file)"; \
+		exit 1; \
+	fi
+	tar xvzf $(librsync_source_file) -C $(builddir) | head -n1 | cut -f1 -d/ > librsync.dir
+	@if [ ! -s librsync.dir ]; then \
+		echo "Error: Failed to extract librsync source"; \
+		exit 1; \
+	fi
+	mkdir -p $(builddir)/`cat librsync.dir`/build
+	cd $(builddir)/`cat librsync.dir`/build && \
 		cmake .. \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_C_FLAGS="$(CFLAGS) -flto" \
@@ -107,9 +115,9 @@ private_librsync:
 		-DBUILD_SHARED_LIBS=OFF \
 		-DENABLE_COMPRESSION=ON \
 		-DENABLE_TRACE=OFF
-	make -C $$( cat librsync.dir )/build
-	make -C $$( cat librsync.dir )/build install
-	cp $(abs_builddir)/librsync-install/lib/librsync.a $$( cat librsync.dir )/libprivatersync.a
+	make -C $(builddir)/`cat librsync.dir`/build
+	make -C $(builddir)/`cat librsync.dir`/build install
+	cp $(abs_builddir)/librsync-install/lib/librsync.a $(builddir)/`cat librsync.dir`/libprivatersync.a
 	touch private_librsync
 
 private_libsqlite:
