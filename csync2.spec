@@ -56,9 +56,17 @@ curl -L %{librsync_url} -o librsync-%{librsync_version}.tar.gz
 %{?suse_update_config:%{suse_update_config}}
 
 %build
-export CPPFLAGS="-I/usr/include"
+export CC=gcc
+export CPPFLAGS="-I/usr/include -I%{_builddir}/%{name}-master/librsync-install/include"
 export RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wno-format-truncation -Wno-misleading-indentation"
-export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
+export CFLAGS="$RPM_OPT_FLAGS -flto"
+%if 0%{?rhel}
+export CFLAGS="$CFLAGS -I/usr/kerberos/include"
+%endif
+export LDFLAGS="$RPM_OPT_FLAGS -flto -L%{_builddir}/%{name}-master -L%{_builddir}/%{name}-master/librsync-install/lib64 -L%{_builddir}/%{name}-master/librsync-install/lib"
+export LIBS="-lprivatersync"
+export PKG_CONFIG_PATH="%{_builddir}/%{name}-master/librsync-install/lib/pkgconfig:$PKG_CONFIG_PATH"
+
 if ! [ -f configure ]; then ./autogen.sh; fi
 %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
   --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
