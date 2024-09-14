@@ -65,8 +65,10 @@ make %{?_smp_mflags}
 %preun 
 systemctl --no-reload disable csync2.socket >/dev/null 2>&1 || :
 systemctl stop csync2.socket >/dev/null 2>&1 || :
+
 %postun 
 systemctl daemon-reload >/dev/null 2>&1 || :
+
 %install
 mkdir -p %{buildroot}%{_localstatedir}/lib/csync2
 mkdir -p %{buildroot}%{_docdir}/csync2
@@ -74,14 +76,11 @@ mkdir -p %{buildroot}%{_sysconfdir}/csync2
 install -D -m 644 csync2.cfg %{buildroot}%{_sysconfdir}/csync2/csync2.cfg
 install -D -m 644 csync2.socket %{buildroot}%{_unitdir}/csync2.socket
 install -m 644 AUTHORS %{buildroot}%{_docdir}/csync2/AUTHORS
-
 install -m 644 AUTHORS.adoc %{buildroot}%{_docdir}/csync2/AUTHORS.adoc
-
 install -m 644 README %{buildroot}%{_docdir}/csync2/README
-
 install -m 644 README.adoc %{buildroot}%{_docdir}/csync2/README.adoc
-%make_install
 
+%make_install
 mkdir -p %{buildroot}%{_localstatedir}/lib/csync2
 install -m 644 doc/csync2.adoc %{buildroot}%{_docdir}/csync2/csync2.adoc
 install -m 644 doc/csync2-quickstart.adoc %{buildroot}%{_docdir}/csync2/csync2-quickstart.adoc
