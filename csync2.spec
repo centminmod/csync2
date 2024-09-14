@@ -93,13 +93,55 @@ for flag in $CFLAGS; do
     fi
 done
 
+# Check librsync source file
+librsync_source_file=$(pwd)/librsync-%{librsync_version}.tar.gz
+if [ ! -f "$librsync_source_file" ]; then
+    echo "Error: librsync source file not found: $librsync_source_file"
+    ls -l
+    exit 1
+fi
+
+# Check for required libraries and headers
+for lib in libsqlite3 libmysqlclient libpq libgnutls; do
+    if ! pkg-config --exists $lib; then
+        echo "Error: $lib not found"
+        #exit 1
+    fi
+done
+
+for header in sqlite3.h mysql.h libpq-fe.h gnutls/gnutls.h; do
+    if [ ! -f /usr/include/$header ]; then
+        echo "Error: $header not found"
+        #exit 1
+    fi
+done
+
 if ! [ -f configure ]; then 
     ./autogen.sh || { echo "autogen.sh failed"; display_config_log; exit 1; }
 fi
 
+# Run configure with verbose output
 %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
   --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
-  --with-librsync-source=$(pwd)/librsync-%{librsync_version}.tar.gz || { echo "configure failed"; display_config_log; exit 1; }
+  --with-librsync-source=$librsync_source_file \
+  --verbose || {
+    echo "configure failed. Contents of config.log:";
+    cat config.log;
+    exit 1;
+  }
+
+# If the above fails, try without custom librsync
+# Uncomment the following lines if needed:
+# if [ $? -ne 0 ]; then
+#     echo "Trying configure without custom librsync..."
+#     %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
+#       --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
+#       --verbose || {
+#         echo "configure failed again. Contents of config.log:";
+#         cat config.log;
+#         exit 1;
+#       }
+# fi
 
 make %{?_smp_mflags} || { echo "make failed"; display_config_log; exit 1; }
 
