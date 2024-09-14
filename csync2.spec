@@ -123,8 +123,7 @@ fi
 # Run configure with verbose output
 %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
   --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
-  --with-librsync-source=$librsync_source_file \
-  --verbose || {
+  --with-librsync-source=$librsync_source_file || {
     echo "configure failed. Contents of config.log:";
     cat config.log;
     exit 1;
@@ -135,8 +134,7 @@ fi
 # if [ $? -ne 0 ]; then
 #     echo "Trying configure without custom librsync..."
 #     %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
-#       --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
-#       --verbose || {
+#       --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} || {
 #         echo "configure failed again. Contents of config.log:";
 #         cat config.log;
 #         exit 1;
