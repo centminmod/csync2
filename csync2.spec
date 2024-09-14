@@ -70,23 +70,28 @@ export LDFLAGS="-L%{_builddir}/%{name}-master -L%{_builddir}/%{name}-master/libr
 export LIBS="-lprivatersync"
 export PKG_CONFIG_PATH="%{_builddir}/%{name}-master/librsync-install/lib/pkgconfig:$PKG_CONFIG_PATH"
 
+# Debug: Print all environment variables
+env
+
 # Test if the compiler works
+echo "Testing basic compiler functionality:"
 echo "int main() { return 0; }" > test.c
-if ! $CC $CFLAGS test.c -o test; then
+$CC $CFLAGS test.c -o test
+if [ $? -ne 0 ]; then
     echo "Error: Unable to compile a simple C program. Check your compiler installation."
+    gcc -v
+    display_config_log
     exit 1
 fi
 
 # Debug: Test each flag individually
+echo "Testing individual CFLAGS:"
 for flag in $CFLAGS; do
     echo "Testing flag: $flag"
     if ! $CC $flag test.c -o test; then
         echo "Problematic flag: $flag"
     fi
 done
-
-# Debug: Print all environment variables
-env
 
 if ! [ -f configure ]; then 
     ./autogen.sh || { echo "autogen.sh failed"; display_config_log; exit 1; }
