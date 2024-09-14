@@ -64,11 +64,9 @@ display_config_log() {
 
 # Set up environment variables
 export CC=gcc
-export CPPFLAGS="-I/usr/include -I%{_builddir}/%{name}-master/librsync-install/include"
-export CFLAGS="-O2 -g -pipe -Wall -fexceptions -fstack-protector-strong -fasynchronous-unwind-tables"
-export LDFLAGS="-L%{_builddir}/%{name}-master -L%{_builddir}/%{name}-master/librsync-install/lib64 -L%{_builddir}/%{name}-master/librsync-install/lib"
-export LIBS="-lprivatersync"
-export PKG_CONFIG_PATH="%{_builddir}/%{name}-master/librsync-install/lib/pkgconfig:$PKG_CONFIG_PATH"
+export CPPFLAGS="-I/usr/include"
+export RPM_OPT_FLAGS="-Wno-format-truncation -Wno-misleading-indentation"
+export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 
 # Debug: Print all environment variables
 env
@@ -129,8 +127,8 @@ fi
     exit 1;
   }
 
-If the above fails, try without custom librsync
-Uncomment the following lines if needed:
+# If the above fails, try without custom librsync
+# Uncomment the following lines if needed:
 if [ $? -ne 0 ]; then
     echo "Trying configure without custom librsync..."
     %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
