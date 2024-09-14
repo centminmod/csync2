@@ -59,10 +59,7 @@ curl -L %{librsync_url} -o librsync-%{librsync_version}.tar.gz
 export CC=gcc
 export CPPFLAGS="-I/usr/include -I%{_builddir}/%{name}-master/librsync-install/include"
 export RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wno-format-truncation -Wno-misleading-indentation"
-export CFLAGS="$RPM_OPT_FLAGS -flto"
-%if 0%{?rhel}
-export CFLAGS="$CFLAGS -I/usr/kerberos/include"
-%endif
+export CFLAGS="$RPM_OPT_FLAGS -flto -I/usr/kerberos/include"
 export LDFLAGS="$RPM_OPT_FLAGS -flto -L%{_builddir}/%{name}-master -L%{_builddir}/%{name}-master/librsync-install/lib64 -L%{_builddir}/%{name}-master/librsync-install/lib"
 export LIBS="-lprivatersync"
 export PKG_CONFIG_PATH="%{_builddir}/%{name}-master/librsync-install/lib/pkgconfig:$PKG_CONFIG_PATH"
