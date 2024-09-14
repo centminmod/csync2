@@ -118,7 +118,7 @@ fi
 
 AC_ARG_ENABLE([mysql],
 	[AC_HELP_STRING([--enable-mysql],
-		[enable/disable MySQL support (default is disabled)])],
+		[enable MySQL/MariaDB support (default is disabled)])],
 	[], [ enable_mysql=no ])
 
 AC_ARG_ENABLE([postgres],
@@ -128,19 +128,43 @@ AC_ARG_ENABLE([postgres],
 
 if test "$enable_mysql" == yes
 then
-	# Check for mysql.
-	CFLAGS="$CFLAGS `pkg-config --cflags mysqlclient`"
+    # Check for mysql/mariadb
+    AC_CHECK_PROG([MYSQL_CONFIG], [mysql_config], [mysql_config])
+    AC_CHECK_PROG([MARIADB_CONFIG], [mariadb_config], [mariadb_config])
 
-	# Check MySQL development header
-	AC_CHECK_HEADERS([mysql.h], , [AC_MSG_ERROR([[mysql header not found; install mysql-devel and dependencies for MySQL Support]])])
+    AS_IF([test -n "$MYSQL_CONFIG"], [
+        MYSQL_CFLAGS=`$MYSQL_CONFIG --cflags`
+        MYSQL_LIBS=`$MYSQL_CONFIG --libs`
+        AC_SUBST([MYSQL_CFLAGS])
+        AC_SUBST([MYSQL_LIBS])
+        AC_DEFINE([HAVE_MYSQL], 1, [Define if MySQL/MariaDB support is wanted])
+        DB_TYPE="MySQL"
+    ], [test -n "$MARIADB_CONFIG"], [
+        MYSQL_CFLAGS=`$MARIADB_CONFIG --cflags`
+        MYSQL_LIBS=`$MARIADB_CONFIG --libs`
+        AC_SUBST([MYSQL_CFLAGS])
+        AC_SUBST([MYSQL_LIBS])
+        AC_DEFINE([HAVE_MYSQL], 1, [Define if MySQL/MariaDB support is wanted])
+        DB_TYPE="MariaDB"
+    ], [
+        AC_MSG_ERROR([Neither mysql_config nor mariadb_config found. Install MySQL or MariaDB development files.])
+    ])
 
-	AC_DEFINE([HAVE_MYSQL], 1, [Define if mysql support is wanted])
+    # Check MySQL/MariaDB development header
+    save_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS $MYSQL_CFLAGS"
+    AC_CHECK_HEADERS([mysql.h], , [AC_MSG_ERROR([[$DB_TYPE header not found; install $DB_TYPE-devel and dependencies for $DB_TYPE Support]])])
+    CFLAGS="$save_CFLAGS"
 
-	# [] quotes, or autofoo will strip the character class [] in sed, breaking the regex.
-	[LIBMYSQLCLIENT_SO=$( readlink $(pkg-config --variable=libdir mysqlclient)/libmysqlclient.so | sed -e 's,^.*/,,;s/\(\.so\.[0-9]*\)\..*$/\1/')]
-	test -n "$LIBMYSQLCLIENT_SO" || AC_MSG_ERROR([Could not determine library name to be used in dlopen for mysql support])
+    # Determine MySQL/MariaDB client library name
+    AS_IF([test "$DB_TYPE" = "MySQL"], [
+        [LIBMYSQLCLIENT_SO=$( readlink $(mysql_config --variable=pkglibdir)/libmysqlclient.so | sed -e 's,^.*/,,;s/\(\.so\.[0-9]*\)\..*$/\1/')]
+    ], [
+        [LIBMYSQLCLIENT_SO=$( readlink $(mariadb_config --variable=pkglibdir)/libmariadb.so | sed -e 's,^.*/,,;s/\(\.so\.[0-9]*\)\..*$/\1/')]
+    ])
+    test -n "$LIBMYSQLCLIENT_SO" || AC_MSG_ERROR([Could not determine library name to be used in dlopen for $DB_TYPE support])
 fi
-AC_DEFINE_UNQUOTED([LIBMYSQLCLIENT_SO], ["$LIBMYSQLCLIENT_SO"], [library name to be used in dlopen for mysql support])
+AC_DEFINE_UNQUOTED([LIBMYSQLCLIENT_SO], ["$LIBMYSQLCLIENT_SO"], [library name to be used in dlopen for MySQL/MariaDB support])
 
 if test "$enable_postgres" == yes
 then

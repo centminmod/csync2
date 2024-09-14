@@ -6,6 +6,8 @@
 #define DB_SQLITE2 1
 #define DB_SQLITE3 2
 #define DB_MYSQL   3
+// Treat MariaDB the same as MySQL
+#define DB_MARIADB DB_MYSQL
 #define DB_PGSQL   4
 
 #define DB_OK                  0

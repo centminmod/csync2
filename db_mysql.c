@@ -30,9 +30,12 @@
 #include "db_mysql.h"
 #include "dl.h"
 
-#ifdef HAVE_MYSQL
-#include <mysql.h>
-#include <mysqld_error.h>
+#if defined(HAVE_MYSQL) || defined(HAVE_MARIADB)
+#include <mysql/mysql.h>
+#include <mysql/mysqld_error.h>
+#else
+#error "Neither MySQL nor MariaDB support is enabled"
+#endif
 
 static struct db_mysql_fns {
 	MYSQL *(*mysql_init_fn) (MYSQL *);
@@ -53,16 +56,24 @@ static void *dl_handle;
 
 static void db_mysql_dlopen(void)
 {
-	csync_debug(2, "Opening shared library " LIBMYSQLCLIENT_SO "\n");
-	dl_handle = dlopen(LIBMYSQLCLIENT_SO, RTLD_LAZY);
-	if (dl_handle == NULL) {
-		csync_fatal
-		    ("Could not open " LIBMYSQLCLIENT_SO ": %s\n"
-		     "Please install Mysql client library (libmysqlclient) or use other database (sqlite, postgres)\n",
-		     dlerror());
-	}
+#ifdef HAVE_MYSQL
+    const char *lib_name = LIBMYSQLCLIENT_SO;
+#elif defined(HAVE_MARIADB)
+    const char *lib_name = LIBMARIADBCLIENT_SO;
+#else
+    #error "Neither MySQL nor MariaDB support is enabled"
+#endif
 
-	csync_debug(2, "Reading symbols from shared library " LIBMYSQLCLIENT_SO "\n");
+    csync_debug(2, "Opening shared library %s\n", lib_name);
+    dl_handle = dlopen(lib_name, RTLD_LAZY);
+    if (dl_handle == NULL) {
+        csync_fatal
+            ("Could not open %s: %s\n"
+             "Please install MySQL/MariaDB client library or use another database (sqlite, postgres)\n",
+             lib_name, dlerror());
+    }
+
+    csync_debug(2, "Reading symbols from shared library %s\n", lib_name);
 
 	LOOKUP_SYMBOL(dl_handle, mysql_init);
 	LOOKUP_SYMBOL(dl_handle, mysql_real_connect);

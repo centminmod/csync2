@@ -22,8 +22,8 @@
 int db_detect_type(const char **db_str, int type)
 {
 	/* *INDENT-OFF* */
-	const char *db_types[]	= { "mysql://", "sqlite://", "sqlite3://", "sqlite2://", "pgsql://", 0 };
-	const int types[]	= { DB_MYSQL,   DB_SQLITE3,  DB_SQLITE3,   DB_SQLITE2,   DB_PGSQL,   DB_UNKNOWN_SCHEME };
+	const char *db_types[]	= { "mysql://", "mariadb://", "sqlite://", "sqlite3://", "sqlite2://", "pgsql://", 0 };
+	const int types[]	= { DB_MYSQL,   DB_MARIADB,   DB_SQLITE3,  DB_SQLITE3,   DB_SQLITE2,   DB_PGSQL,   DB_UNKNOWN_SCHEME };
 	/* *INDENT-ON* */
 	int index;
 
