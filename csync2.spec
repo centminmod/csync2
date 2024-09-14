@@ -50,6 +50,7 @@ It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 
 %prep
 %setup -n csync2-master
+cp %{SOURCE1} .
 %{?suse_update_config:%{suse_update_config}}
 
 %build
@@ -59,7 +60,7 @@ export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 if ! [ -f configure ]; then ./autogen.sh; fi
 %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
   --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
-  --with-librsync-source=%{_sourcedir}/librsync-%{librsync_version}.tar.gz
+  --with-librsync-source=$(pwd)/librsync-%{librsync_version}.tar.gz
 
 make %{?_smp_mflags}
 
