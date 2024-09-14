@@ -13,13 +13,15 @@ Name:           csync2
 Version: 2.1
 Release: 1%{?dist}
 URL:            https://github.com/centminmod/csync2#readme
-%define librsync_version 2.3.4
 Source0: %{name}-%{version}.tar.gz
-Source1: https://github.com/librsync/librsync/releases/download/v%{librsync_version}/librsync-%{librsync_version}.tar.gz
+
+%define librsync_version 2.3.4
+%define librsync_url https://github.com/librsync/librsync/releases/download/v%{librsync_version}/librsync-%{librsync_version}.tar.gz
 
 BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  bison
+BuildRequires:  curl
 BuildRequires:  flex
 BuildRequires:  gnutls-devel
 BuildRequires:  librsync-devel
@@ -50,7 +52,7 @@ It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 
 %prep
 %setup -n csync2-master
-cp %{SOURCE1} .
+curl -L %{librsync_url} -o librsync-%{librsync_version}.tar.gz
 %{?suse_update_config:%{suse_update_config}}
 
 %build
