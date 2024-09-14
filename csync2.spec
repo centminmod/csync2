@@ -89,8 +89,8 @@ install -m 644 doc/csync2-quickstart.adoc %{buildroot}%{_docdir}/csync2/csync2-q
 [ "$RPM_BUILD_ROOT" != "/" ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT
 make clean
 
-%pre
-systemctl preset csync2.socket >/dev/null 2>&1 || :
+#%pre
+#systemctl preset csync2.socket >/dev/null 2>&1 || :
 
 %post
 systemctl daemon-reload >/dev/null 2>&1 || :
