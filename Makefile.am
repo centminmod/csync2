@@ -113,7 +113,14 @@ private_librsync:
 		-DENABLE_TRACE=OFF
 	make -C librsync_build
 	make -C librsync_build install
-	cp $(abs_builddir)/librsync-install/lib/librsync.a $(abs_builddir)/libprivatersync.a
+	if [ -f "$(abs_builddir)/librsync-install/lib64/librsync.a" ]; then \
+		cp $(abs_builddir)/librsync-install/lib64/librsync.a $(abs_builddir)/libprivatersync.a; \
+	elif [ -f "$(abs_builddir)/librsync-install/lib/librsync.a" ]; then \
+		cp $(abs_builddir)/librsync-install/lib/librsync.a $(abs_builddir)/libprivatersync.a; \
+	else \
+		echo "Error: librsync.a not found in expected locations"; \
+		exit 1; \
+	fi
 	touch private_librsync
 
 private_libsqlite:
