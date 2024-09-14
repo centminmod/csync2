@@ -15,13 +15,9 @@ Release: 1%{?dist}
 URL:            https://github.com/centminmod/csync2#readme
 Source0: %{name}-%{version}.tar.gz
 
-%define librsync_version 2.3.4
-%define librsync_url https://github.com/librsync/librsync/releases/download/v%{librsync_version}/librsync-%{librsync_version}.tar.gz
-
 BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  bison
-BuildRequires:  curl
 BuildRequires:  flex
 BuildRequires:  gnutls-devel
 BuildRequires:  librsync-devel
@@ -29,7 +25,6 @@ BuildRequires:  hostname
 # openssl required at build time due to rpmlint checks which run postinstall script which uses openssl
 BuildRequires:  openssl
 BuildRequires:  pkgconfig
-BuildRequires:  cmake
 BuildRequires:  sqlite-devel
 Requires:       sqlite-libs
 Requires:       openssl
@@ -52,94 +47,17 @@ It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 
 %prep
 %setup -n csync2-master
-curl -L %{librsync_url} -o librsync-%{librsync_version}.tar.gz
 %{?suse_update_config:%{suse_update_config}}
 
 %build
-# Function to display config.log
-display_config_log() {
-    echo "Contents of config.log:"
-    cat config.log
-}
-
-# Set up environment variables
-export CC=gcc
 export CPPFLAGS="-I/usr/include"
-export RPM_OPT_FLAGS="-Wno-format-truncation -Wno-misleading-indentation"
+export RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wno-format-truncation -Wno-misleading-indentation"
 export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
-
-# Debug: Print all environment variables
-env
-
-# Test if the compiler works
-echo "Testing basic compiler functionality:"
-echo "int main() { return 0; }" > test.c
-$CC $CFLAGS test.c -o test
-if [ $? -ne 0 ]; then
-    echo "Error: Unable to compile a simple C program. Check your compiler installation."
-    gcc -v
-    display_config_log
-    exit 1
-fi
-
-# Debug: Test each flag individually
-echo "Testing individual CFLAGS:"
-for flag in $CFLAGS; do
-    echo "Testing flag: $flag"
-    if ! $CC $flag test.c -o test; then
-        echo "Problematic flag: $flag"
-    fi
-done
-
-# Check librsync source file
-librsync_source_file=$(pwd)/librsync-%{librsync_version}.tar.gz
-if [ ! -f "$librsync_source_file" ]; then
-    echo "Error: librsync source file not found: $librsync_source_file"
-    ls -l
-    exit 1
-fi
-
-# Check for required libraries and headers
-for lib in libsqlite3 libmysqlclient libpq libgnutls; do
-    if ! pkg-config --exists $lib; then
-        echo "Error: $lib not found"
-        #exit 1
-    fi
-done
-
-for header in sqlite3.h mysql.h libpq-fe.h gnutls/gnutls.h; do
-    if [ ! -f /usr/include/$header ]; then
-        echo "Error: $header not found"
-        #exit 1
-    fi
-done
-
-if ! [ -f configure ]; then 
-    ./autogen.sh || { echo "autogen.sh failed"; display_config_log; exit 1; }
-fi
-
-# Run configure with verbose output
+if ! [ -f configure ]; then ./autogen.sh; fi
 %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
-  --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} \
-  --with-librsync-source=$librsync_source_file || {
-    echo "configure failed. Contents of config.log:";
-    cat config.log;
-    exit 1;
-  }
+  --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name}
 
-# If the above fails, try without custom librsync
-# Uncomment the following lines if needed:
-if [ $? -ne 0 ]; then
-    echo "Trying configure without custom librsync..."
-    %configure --enable-systemd --enable-mysql --enable-postgres --disable-sqlite --enable-sqlite3 \
-      --sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name} || {
-        echo "configure failed again. Contents of config.log:";
-        cat config.log;
-        exit 1;
-      }
-fi
-
-make %{?_smp_mflags} || { echo "make failed"; display_config_log; exit 1; }
+make %{?_smp_mflags}
 
 %preun
 systemctl --no-reload disable csync2.socket >/dev/null 2>&1 || :
