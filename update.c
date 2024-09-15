@@ -33,6 +33,9 @@
 
 static int connection_closed_error = 1;
 
+// Batch of filenames to be deleted from dirty table - used when csync_batch_deletes on
+static struct textlist *batched_dirty_deletes;
+
 enum connection_response read_conn_status(const char *file, const char *host)
 {
 	char line[4096];
@@ -236,10 +239,14 @@ already_gone:
 		goto maybe_auto_resolve;
 
 skip_action:
-	SQL("Remove dirty-file entry.",
-		"DELETE FROM dirty WHERE filename = '%s' "
-		"AND peername = '%s'", url_encode(filename),
-		url_encode(peername));
+	if (csync_batch_deletes) {
+		textlist_add(&batched_dirty_deletes, filename, 0);
+	} else {
+		SQL("Remove dirty-file entry.",
+			"DELETE FROM dirty WHERE filename = '%s' "
+			"AND peername = '%s'", url_encode(filename),
+			url_encode(peername));
+	}
 
 	if (auto_resolve_run)
 		csync_error_count--;
@@ -316,6 +323,8 @@ auto_resolve_entry_point:
 		goto got_error;
 	}
 
+	long long nano_timestamp = mtime_nano(&st);
+
 	if ( force ) {
 		if ( dry_run ) {
 			printf("!M: %-15s %s\n", peername, filename);
@@ -378,8 +387,16 @@ auto_resolve_entry_point:
 	}
 
 	if ( S_ISREG(st.st_mode) ) {
-		conn_printf("PATCH %s %s\n",
-				url_encode(key), url_encode(filename));
+		if (csync_atomic_patch) {
+			conn_printf("ATOMICPATCH %s %s %d %d %d %lld\n",
+					url_encode(key), url_encode(filename),
+					st.st_uid, st.st_gid,
+					st.st_mode,
+					nano_timestamp);
+		} else {
+			conn_printf("PATCH %s %s\n",
+					url_encode(key), url_encode(filename));
+		}
 		last_conn_status = read_conn_status(filename, peername);
 		/* FIXME be more specific?
 		 * (last_conn_status != CR_OK_SEND_DATA) ??
@@ -397,8 +414,16 @@ auto_resolve_entry_point:
 			goto got_error;
 	} else
 	if ( S_ISDIR(st.st_mode) ) {
-		conn_printf("MKDIR %s %s\n",
-				url_encode(key), url_encode(filename));
+		if (csync_atomic_patch) {
+			conn_printf("MKDIR %s %s %d %d %d %lld\n",
+					url_encode(key), url_encode(filename),
+					st.st_uid, st.st_gid,
+					st.st_mode,
+					nano_timestamp);
+		} else {
+			conn_printf("MKDIR %s %s\n",
+					url_encode(key), url_encode(filename));
+		}
 		last_conn_status = read_conn_status(filename, peername);
 		if (!is_ok_response(last_conn_status))
 			goto maybe_auto_resolve;
@@ -452,35 +477,42 @@ auto_resolve_entry_point:
 		goto got_error;
 	}
 
-	conn_printf("SETOWN %s %s %d %d\n",
-			url_encode(key), url_encode(filename),
-			st.st_uid, st.st_gid);
-	last_conn_status = read_conn_status(filename, peername);
-	if (!is_ok_response(last_conn_status))
-		goto got_error;
+	if (!csync_atomic_patch || (!S_ISREG(st.st_mode) && S_ISDIR(st.st_mode))) {
 
-	if ( !S_ISLNK(st.st_mode) ) {
-		conn_printf("SETMOD %s %s %d\n", url_encode(key),
-				url_encode(filename), st.st_mode);
+		conn_printf("SETOWN %s %s %d %d\n",
+				url_encode(key), url_encode(filename),
+				st.st_uid, st.st_gid);
 		last_conn_status = read_conn_status(filename, peername);
 		if (!is_ok_response(last_conn_status))
 			goto got_error;
-	}
+
+		if ( !S_ISLNK(st.st_mode) ) {
+			conn_printf("SETMOD %s %s %d\n", url_encode(key),
+					url_encode(filename), st.st_mode);
+			last_conn_status = read_conn_status(filename, peername);
+			if (!is_ok_response(last_conn_status))
+				goto got_error;
+		}
 
 skip_action:
-	if ( !S_ISLNK(st.st_mode) ) {
-		conn_printf("SETIME %s %s %lld\n",
-				url_encode(key), url_encode(filename),
-				(long long)st.st_mtime);
-		last_conn_status = read_conn_status(filename, peername);
-		if (!is_ok_response(last_conn_status))
-			goto got_error;
+		if ( !S_ISLNK(st.st_mode) ) {
+			conn_printf("SETIME %s %s %lld\n",
+					url_encode(key), url_encode(filename),
+					nano_timestamp);
+			last_conn_status = read_conn_status(filename, peername);
+			if (!is_ok_response(last_conn_status))
+				goto got_error;
+		}
 	}
 
-	SQL("Remove dirty-file entry.",
-		"DELETE FROM dirty WHERE filename = '%s' "
-		"AND peername = '%s'", url_encode(filename),
-		url_encode(peername));
+	if (csync_batch_deletes) {
+		textlist_add(&batched_dirty_deletes, filename, 0);
+	} else {
+		SQL("Remove dirty-file entry.",
+			"DELETE FROM dirty WHERE filename = '%s' "
+			"AND peername = '%s'", url_encode(filename),
+			url_encode(peername));
+	}
 
 	if (auto_resolve_run)
 		csync_error_count--;
@@ -519,7 +551,7 @@ maybe_auto_resolve:
 				{
 					static char buffer[4 * 4096];
 					char *type, *cmd;
-					long remotedata, localdata;
+					long long remotedata, localdata;
 					struct stat sbuf;
 
 					if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
@@ -546,7 +578,7 @@ maybe_auto_resolve:
 
 					if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
 					    auto_method == CSYNC_AUTO_METHOD_OLDER)
-						localdata = sbuf.st_mtime;
+						localdata = mtime_nano(&sbuf);
 					else
 						localdata = sbuf.st_size;
 
@@ -723,7 +755,7 @@ struct textlist *csync_find_dirty(struct update_context *c)
 		int use_this = (c->patnum == 0);
 		int i;
 		for (i=0; i < c->patnum && !use_this; i++)
-			if (compare_files(filename, c->patlist[i], c->recursive))
+			if (compare_files(prefixsubst(filename), c->patlist[i], c->recursive))
 				use_this = 1;
 		if (use_this)
 			textlist_add2(&tl, filename, url_decode(SQL_V(1)), atoi(SQL_V(2)));
@@ -825,7 +857,7 @@ void csync_update_host(const char *peername,
 
 void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 {
-	struct textlist *tl = 0, *t;
+	struct textlist *tl = 0, *t, *dt;
 
 	SQL_BEGIN("Get hosts from dirty table",
 		"SELECT peername FROM dirty GROUP BY peername")
@@ -848,6 +880,21 @@ void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 		}
 found_asactive:
 		csync_update_host(t->value, patlist, patnum, recursive, dry_run);
+
+		if (csync_batch_deletes) {
+			if (!dry_run) {
+				csync_debug(2, "Starting batched dirty deletes for %s\n", t->value);
+				for (dt = batched_dirty_deletes; dt != 0; dt = dt->next) {
+					SQL("Remove dirty-file entry from batch",
+						"DELETE FROM dirty WHERE filename = '%s' "
+						"AND peername = '%s'", url_encode(dt->value),
+						url_encode(t->value));
+				}
+				csync_debug(2, "Finished batched dirty deletes for %s\n", t->value);
+			}
+			textlist_free(batched_dirty_deletes);
+			batched_dirty_deletes = NULL;
+		}
 	}
 
 	textlist_free(tl);
@@ -912,7 +959,7 @@ found_host_check:
 		&& fwrite(buffer, 1, rc, p) == rc)
 		;
 
-	fclose(p);
+	pclose(p);
 	signal(SIGPIPE, old_sigpipe_handler);
 	if (rc > 0)
 		fprintf(stdout, "*** output to diff truncated\n");

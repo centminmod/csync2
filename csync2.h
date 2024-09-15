@@ -21,7 +21,7 @@
 #ifndef CSYNC2_H
 #define CSYNC2_H 1
 
-#define CSYNC2_VERSION "2.0"
+#define CSYNC2_VERSION "2.1.1"
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -78,6 +78,7 @@ extern int csync_perm(const char *filename, const char *key, const char *hostnam
 
 /* error.c */
 
+extern FILE* debug_file;
 extern void csync_printtime();
 extern void csync_printtotaltime();
 extern void csync_fatal(const char *fmt, ...);
@@ -233,7 +234,7 @@ extern int db_sync_mode;
 extern int csync_rs_check(const char *filename, int isreg);
 extern void csync_rs_sig(const char *filename);
 extern int csync_rs_delta(const char *filename);
-extern int csync_rs_patch(const char *filename);
+extern int csync_rs_patch(const char *filename, struct stat *atomic_stats);
 extern int mkpath(const char *path, mode_t mode);
 extern void split_dirname_basename(char *dirname, char* basename, const char *filepath);
 
@@ -435,6 +436,8 @@ extern int csync_messages_printed;
 extern int csync_server_child_pid;
 extern int csync_timestamps;
 extern int csync_new_force;
+extern int csync_atomic_patch;
+extern int csync_batch_deletes;
 
 extern char myhostname[];
 extern int bind_to_myhostname;
@@ -483,6 +486,11 @@ static inline char *on_cygwin_lowercase(char *s) {
 	csync_lowercyg_used = 1;
 #endif
 	return s;
+}
+
+static inline long long mtime_nano(const struct stat *st)
+{
+	return st->st_mtime * 1000000000 + st->st_mtim.tv_nsec;
 }
 
 #endif /* CSYNC2_H */

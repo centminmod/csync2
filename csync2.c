@@ -67,6 +67,8 @@ int csync_error_count = 0;
 int csync_debug_level = 0;
 FILE *csync_debug_out = 0;
 int csync_syslog = 0;
+int csync_atomic_patch = 1; //TODO - make an inverse flag.
+int csync_batch_deletes = 0;
 
 int csync_server_child_pid = 0;
 int csync_timestamps = 0;
@@ -173,6 +175,12 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "	-A	Open database in asynchronous mode. This will cause data\n"
 "		corruption if the operating system crashes or the computer\n"
 "		loses power.\n"
+"\n"
+"	-b	Batch removal of dirty file entries and run them after\n"
+"		processing all files for each peer. This allows the database\n"
+"		side of update operations to be read-only by delaying the\n"
+"		writes (and potential locking) until all file transfers\n"
+"		have completed.\n"
 "\n"
 "	-N address	When running in stand-alone mode with -ii bind to a\n"
 "		specific interface. You can pass either a hostname or ip\n"
@@ -436,7 +444,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULlSTMRvhcuoimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:O::HBAIXULlSTMRabvhcuoimfxrd")) != -1 ) {
 
 		switch (opt) {
 			case 'W':
@@ -451,6 +459,15 @@ int main(int argc, char ** argv)
 					csync_fatal("Can't open timestanp file `%s': %s\n",
 							optarg, strerror(errno));
 				break;
+			case 'O': 
+				{
+					char *logname = optarg ? optarg : "/tmp/csync2_full_log.log";
+					if((debug_file = fopen(logname, "w+")) == NULL) {
+						fprintf(stderr, "Could not open full log file:  %s\n", logname);
+						exit(1);
+					}
+				}
+				break;
 			case 'F':
 				csync_new_force = 1;
 				break;
@@ -463,6 +480,9 @@ int main(int argc, char ** argv)
 			case 'G':
 				active_grouplist = optarg;
 				break;
+			case 'a':
+				csync_atomic_patch =  1;
+				break;
 			case 'P':
 				active_peerlist = optarg;
 				break;
@@ -471,6 +491,9 @@ int main(int argc, char ** argv)
 				break;
 			case 'A':
 				db_sync_mode = 0;
+				break;
+			case 'b':
+				csync_batch_deletes = 1;
 				break;
 			case 'I':
 				init_run = 1;
@@ -684,8 +707,56 @@ int main(int argc, char ** argv)
 	if (!csync_database || !csync_database[0] || csync_database[0] == '/')
 		csync_database = db_default_database(csync_database);
 
+
+
+	// If local hostname is not set, try to guess it by getting the addrinfo of every hostname  in the
+	// group and try to bind on that address. If bind is successful set that host as local hostname.
+	{
+		struct csync_group *g;
+		struct csync_group_host *h;
+		struct csync_group_host *prev = 0;
+		struct addrinfo *rp, *result;
+		int sfd;
+		int bind_status;
+
+		for (g=csync_group; g; g=g->next) {
+			if ( !g->myname ) {
+				h = g->host;
+				while(h && !g->myname) {
+					getaddrinfo(h->hostname, NULL, NULL, &result);
+					for (rp = result; rp != NULL; rp = rp->ai_next) {
+						sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+						if (sfd == -1)
+							continue;
+						bind_status = bind(sfd, rp->ai_addr, rp->ai_addrlen);
+						close(sfd);
+
+						if (bind_status == 0) {
+							g->myname = h->hostname;
+							snprintf(myhostname, 256, "%s", h->hostname);
+							g->local_slave = h->slave;
+
+							if (!prev) {
+								g->host = h->next;
+							} else {
+								prev->next = h->next;
+							}
+							free(h);
+							csync_debug(1, "My hostname guessed as: %s\n", g->myname);
+							break;
+						}
+					}
+					freeaddrinfo(result);
+					prev = h;
+					h = h->next;
+				}
+			}
+		}
+	}
+
 	csync_debug(2, "My hostname is %s.\n", myhostname);
 	csync_debug(2, "Database-File: %s\n", csync_database);
+
 
 	{
 		const struct csync_group *g;

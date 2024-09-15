@@ -679,6 +679,12 @@ Modifiers:
                 corruption if the operating system crashes or the computer
                 loses power.
 
+        -b      Batch removal of dirty file entries and run them after
+                processing all files for each peer. This allows the database
+                side of update operations to be read-only by delaying the
+                writes (and potential locking) until all file transfers
+                have completed.
+
         -N address      When running in stand-alone mode with -ii bind to a
                 specific interface. You can pass either a hostname or ip
                 address. If used, this value must match exactly the host

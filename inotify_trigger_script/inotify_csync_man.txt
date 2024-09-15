@@ -1,0 +1,94 @@
+
+## Summary of the problem
+
+Updating of cluster peers is taking too long on a directory with over 170,000 files. The delay of around 6 seconds causes the other peers to update their own caches which then cause further syncs. It is important to sync files immediately (maximum 2 second time-frame).
+
+The existing csync2 -x option causes all files in included directories to be checked individually. This involves multiple database reads and file stat calls for every file. Running a csync check command constantly on a directory with over 170,000 files must be quite an intensive task for each server.
+
+
+## Solution
+
+I decided that the optimal solution is to use the kernel inotify system (via inotify-tools) and an external script to inform csync of altered files.
+
+I have chosen an external script over adding inotify support to csync for the following reasons:
+
+* The server/daemon modes in csync are purely for receiving and responding to network commands - the server modes are not for updating file status
+* Updating csync externally is how it was designed to be used
+* The inotify tools are mature and battle-tested unlike any additions to the somewhat fragile csync codebase
+* A simple bash script gives you more flexibility and freedom to makes changes
+
+The main point of this script is that it will only run when files actually change - it will then react and sync immediately. There is no constant checking of all files to see if they've changed.
+
+The new script is called `inotify_csync.sh`.
+
+## Workings
+
+1. A csync server is started using the passed options - this instance outputs activity timestamps to a log file for monitoring
+2. Hosts, included and excluded directories are pulled from the csync2.cfg file
+3. inotify monitors these locations in the background and adds changed files to a FIFO queue (a file of your choosing)
+4. The queue is then read periodically looking for new items - duplicates are removed in readiness for running csync commands
+5. The csync server log is used to check for activity - csync commands are delayed until there is no activity in order to avoid deadlocks
+6. csync processing runs in two stages: 
+	1) run a check command to see if the file should be marked as dirty
+	2) sends all dirty files to peers - this update will include *all* dirty files so any left over from previous times (or added in other ways) will be transferred
+
+* To avoid slow locks and coordination between inotify and file processing, a rolling queue and file position is used - the queue file is reset once a certain number of lines has passed
+* Locations are monitored using `inotifywait` with the filenames of triggered files directed to the queue.
+* It's a known issue that inotify will sometimes miss new or altered files in nested directories. When this happens, the file count shown in the script queue will be wrong. However, all files will be included in the sync because the `-r` recursive flag is used in csync file checking commands. Top-level files and directories will always be found so the recursive checking will ensure nothing is missed even if the file count shows incorrectly.
+* csync updates for each peer/node can be run in parallel using the `parallel_updates` switch. This would cause deadlocks in SQLite as each process deletes rows from the `dirty` table after every file update. To workaround this, csync was slightly modified to allow delaying of delete statements until all transfers have finished. There could still be deadlocks when these batched deletes run but this would be in one short block at the end rather than scattered throughout the operation. Passing in `-A` to run SQLite in asynchronous mode will alleviate that. Another alternative is to use PostgreSQL or MySQL. In tests, PostgreSQL performed better than MySQL but both were much slower than SQLite.
+
+The script has no options of its own. Anything passed to it will be passed onto the `csync2` calls.
+
+Example
+
+`./inotify_csync.sh -N 2.csync2.test`
+
+At the top of the script are variables for the update interval, the queue outfile, the file events to monitor and the csync system directory and config file name.
+
+
+## Settings
+
+`num_lines_until_reset` The total number of lines read from the file queue that will trigger a full reset and sync. This prevents the log file from becoming too large. A full sync is performed after resetting the file in case inotify added events between reading and resetting.
+
+`num_batched_changes_threshold` The number of file changes in one processed batch that will trigger a full csync check and sync. This avoids breaching any max file argument limits and also acts as a safety net if inotify misses events when there are many changing files.
+
+`full_sync_interval` Seconds between a regular full sync - zero to turn off.
+
+`parallel_updates` A flag (0/1) to toggle updating of peers/nodes in parallel. In parallel mode each peer is updated separately by starting multiple background instances of csync with the `-P` flag to restrict `dirty` file processing. The new `-b` is also used to avoid database locking by pushing database writes to the end of the update process.
+
+
+## Notes
+
+* Directories are monitored recursively
+* The `close_write` inotify file event also catches actions `modify`, `attrib` and `create`
+* It is best to change the csync tempdir to an external directory so that temp files in the watched directories do not trigger a sync (but, if not, temp files will not be synced because they do not exist in the csync db)
+* **The directory specified for the tempdir config must be on the same filesystem as the watched directories** - see csync manual for details
+
+
+## Installation
+
+Dependent on `inotify-tools` which should be available in most package managers.
+
+The new `inotify_csync.sh` script **replaces** your other automatic checking scripts (-x option) - disable that on all servers.
+
+The new script should be **run once at startup on each server**. It stays open running the main csync server daemon and inotifywait in monitor mode. You could use systemd to launch this at startup.
+
+
+## Inotify settings
+
+Set Inotify watch limits
+
+#Shows how many watches available now
+cat /proc/sys/fs/inotify/max_user_watches
+
+vim /etc/sysctl.conf
+
+#Add the following:
+
+fs.inotify.max_user_watches=400000
+
+#To activate immediatelly run:
+
+sysctl fs.inotify.max_user_watches=400000
+
+sysctl -p

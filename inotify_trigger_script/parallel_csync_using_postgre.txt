@@ -1,0 +1,188 @@
+
+## Running csync2 -u for each pair in parallel.
+
+When using SQLite database, deletes from the `dirty` table cause a lock on the database which will stall any other processes accessing the same database. As a test, if the deletes are disabled then multiple processes can run together.
+
+The easy solution is to enable write-ahead logging in SQLite - this queues up the database transactions and allows consistent access until commit. Unfortunately, it is not possible to use WAL because of the non-standard ways that the csync codebase uses transactions.
+
+Various workarounds and hacks could be employed but it doesn't get around the fact that as awesome as SQLite is, it isn't really designed for writes from different processes. The best way forward is changing to a database that accommodates this at its heart.
+
+
+## Parallelising the csync codebase
+
+I wanted to add multithreading to update operations directly in the csync codebase but the liberal use of global variables especially for database access makes this impossible without careful rewriting.
+
+The best alternative (and not a bad one) is to run several background processes of the csync command for each peer. I've done this and it works well. I thought there would be an overhead for starting up the parallel csync  processes but there is none.
+
+
+## Install PostgreSQL for Csync (Does not make any performance gains if less than 6-10 nodes are being used)
+
+
+#Ubuntu 20.04
+
+
+# Create the file repository configuration:
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+# Import the repository signing key:
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
+# Update the package lists:
+sudo apt update
+
+# Install the latest version of PostgreSQL.
+
+sudo apt install postgresql postgresql-contrib postgresql-server-dev-all
+
+systemctl enable postgresql
+
+systemctl start postgresql
+
+
++++++++++++++++++++++++++++++++++++++++
+#General PostGreSQL usage:
+
+sudo -u postgres psql
+
+#Create user:
+
+sudo -u postgres createuser --interactive
+
+#Create Database
+
+sudo -u postgres createdb csync
+
+#You can check your current connection information by typing (one connected to psql):
+
+\conninfo
+
++++++++++++++++++++++++++++++++++++++++
+
+### Postgres Server database setup (which is 2.5 times slower than SqLite):
+
+
+By default, the UNIX account "postgres" is locked, which means it cannot be logged in using a password. If you use "sudo passwd postgres", the account is immediately unlocked. It is recommended to keep it locked and use: sudo -u postgres CMD. If this is not possible then set a strong password.
+
+#Create db user matching os user
+sudo -u postgres createuser learn4gd
+
+#Create database
+sudo -u postgres createdb -O learn4gd csync
+
+#Now psql can be used from user account (e.g. learn4gd)
+psql -d csync
+
+#Login via postgres user
+sudo -u postgres psql  -d csync
+
+#Some PSQL Commands
+\du -  shows users
+\dt - show tables
+\dt+
+\l   - show databases
+\l+
+show hba_file; - find database config file
+
+#Change login permissions for database
+#Use `trust` to allow any user because this data is not sensitive
+
+#Ubuntu 20.04
+vim /etc/postgresql/14/main/pg_hba.conf
+
+
+#Make sure the host lines have trust method:
+local   all     all     trust
+host	all	all	127.0.0.1/32	trust
+host	all	all	::1/128	trust
+
+
+
+#Restart PostGreSQL on Ubuntu
+systemctl restart postgresql
+
+
+#Ubuntu 20.04
+#Install libraries and tools:
+sudo apt install -y gnutls-bin libgnutls28-dev librsync-dev bison flex libmysqlclient-dev inotify-tools
+
+
+
+Log files
+
+#Ubuntu 20.04
+
+less /var/log/postgresql/postgresql-14-main.log
+
+
+### Csync Build
+
+#Csync must be built with Postgres support.
+
+#Packaged Library Dependencies
+#postgresql
+#postgresql-devel
+
+
+#Ubuntu 20:
+
+dpkg -l | grep libpq
+dpkg -l | grep gnutls
+
+#If it does not find libraries: No Postgres SQL support configured is given
+#And config did not find it either:
+#Package libpq was not found in the pkg-config search path.
+#Perhaps you should add the directory containing `libpq.pc'
+#to the PKG_CONFIG_PATH environment variable
+#No package 'libpq' found
+
+#Then execute the following and run a check again:
+
+export PKG_CONFIG_PATH=/usr/pgsql-14/lib/pkgconfig
+
+
+
+Configure and Make
+cd /opt/csync2
+./autogen.sh clean
+./autogen.sh
+./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc/csync2/ --enable-sqlite3 --enable-mysql --enable-postgres --enable-systemd
+
++++++++++++++++
+
+#Custom setup 
+aclocal
+autoheader
+automake --add-missing --copy
+autoconf
+
+
+./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc/csync2/ --enable-postgres --disable-gnutls
++++++++++++++++++++
+
+
+###Line 155 in `configure.ac` will fail if the `pg_config` util is not available. Either install the `postgresql-server-devel` package or hardcode the path to the `libpq.so`:
+###LIBPQ_SO=$( readlink /usr/lib64/libpq.so | sed -e 's,^.*/,,;s/\(\.so\.[0-9]*\)\..*$/\1/')]
+
+make clean
+make
+make install
+
+
+#Check libraries it is built with are showing up correctly:
+
+ldd /usr/sbin/csync2
+
+
+#New csync command format for manual run
+
+csync2 -D pgsql://learn4gd@localhost/csync  -N 10.10.10.7 -x
+csync2 -D pgsql://learn4gd@localhost/csync  -N 10.10.10.5 -x
+
+
+#Csync2 will issue Permission error (on very verbose mode) if config and/or key file is not matching on all nodes. Generate one key and share it with other nodes (otherwise Permission error will appear - <5774> Local> Permission denied!\n)
+
+scp /etc/csync2/* root@10.10.10.1:/etc/csync2/
+scp /etc/csync2/* root@10.10.10.3:/etc/csync2/
+scp /etc/csync2/* root@10.10.10.7:/etc/csync2/
+
+
