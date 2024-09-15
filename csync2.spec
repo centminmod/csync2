@@ -29,7 +29,6 @@ BuildRequires:  sqlite-devel
 Requires:       sqlite-libs
 Requires:       openssl
 Requires:       sqlite
-Requires:       sqlite-libs
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
