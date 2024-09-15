@@ -11,6 +11,7 @@ Group:          Productivity/Clustering/HA
 
 Name:           csync2
 Version: 2.1.1
+Cdversion: 2.1
 Release: 1%{?dist}
 URL:            https://github.com/centminmod/csync2#readme
 Source0: %{name}-%{version}.tar.gz
@@ -45,7 +46,7 @@ much more than just 2 hosts, handle file deletions and can detect conflicts.
 It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 
 %prep
-%setup -n csync2-%{version}
+%setup -n csync2-%{cdversion}
 %{?suse_update_config:%{suse_update_config}}
 
 %build
