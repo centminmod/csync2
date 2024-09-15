@@ -5,13 +5,14 @@
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+%global cdversion 2.1
+
 Summary:        Cluster synchronization tool
 License:        GPL-2.0-or-later
 Group:          Productivity/Clustering/HA
 
 Name:           csync2
 Version: 2.1.1
-Cdversion: 2.1
 Release: 1%{?dist}
 URL:            https://github.com/centminmod/csync2#readme
 Source0: %{name}-%{version}.tar.gz
