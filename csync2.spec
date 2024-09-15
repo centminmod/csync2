@@ -10,7 +10,7 @@ License:        GPL-2.0-or-later
 Group:          Productivity/Clustering/HA
 
 Name:           csync2
-Version: 2.1
+Version: 2.1.1
 Release: 1%{?dist}
 URL:            https://github.com/centminmod/csync2#readme
 Source0: %{name}-%{version}.tar.gz
