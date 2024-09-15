@@ -45,7 +45,7 @@ much more than just 2 hosts, handle file deletions and can detect conflicts.
 It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 
 %prep
-%setup -n csync2-master
+%setup -n csync2-%{version}
 %{?suse_update_config:%{suse_update_config}}
 
 %build
