@@ -16,10 +16,10 @@ You should definitely read the documentation before trying to setup csync2, + se
 
 # Copyright
 
-csync2 - cluster synchronization tool, 2nd generation +
-Copyright © 2004 - 2013  LINBIT Information Technologies GmbH +
-Copyright © 2008 - 2018  https://www.linbit.com[LINBIT HA Solutions GmbH] +
-see also <<AUTHORS#,AUTHORS>>
+csync2 - cluster synchronization tool, 2nd generation
+Copyright © 2004 - 2013  LINBIT Information Technologies GmbH
+Copyright © 2008 - 2018  [LINBIT HA Solutions GmbH](https://www.linbit.com/)
+see also [AUTHORS](https://github.com/centminmod/csync2/blob/2.1/AUTHORS.adoc)
 
 # License
 
