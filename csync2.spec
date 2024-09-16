@@ -78,8 +78,7 @@ install -D -m 644 csync2.socket %{buildroot}%{_unitdir}/csync2.socket
 install -D -m 644 csync2@.service %{buildroot}%{_unitdir}/csync2@.service
 install -m 644 AUTHORS %{buildroot}%{_docdir}/csync2/AUTHORS
 install -m 644 AUTHORS.adoc %{buildroot}%{_docdir}/csync2/AUTHORS.adoc
-install -m 644 README %{buildroot}%{_docdir}/csync2/README
-install -m 644 README.adoc %{buildroot}%{_docdir}/csync2/README.adoc
+install -m 644 README.md %{buildroot}%{_docdir}/csync2/README.md
 
 %make_install
 mkdir -p %{buildroot}%{_localstatedir}/lib/csync2
@@ -111,8 +110,7 @@ fi
 %doc %{_docdir}/csync2/COPYING
 %doc %{_docdir}/csync2/csync2-quickstart.adoc
 %doc %{_docdir}/csync2/csync2.adoc
-%doc %{_docdir}/csync2/README
-%doc %{_docdir}/csync2/README.adoc
+%doc %{_docdir}/csync2/README.md
 %doc %{_mandir}/man1/csync2.1.gz
 %{_sbindir}/csync2
 %{_sbindir}/csync2-compare
