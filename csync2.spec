@@ -14,7 +14,7 @@ Group:          Productivity/Clustering/HA
 Name:           csync2
 Version: 2.1.1
 Release: 1%{?dist}
-URL:            https://github.com/centminmod/csync2#readme
+URL:            https://github.com/centminmod/csync2/tree/2.1
 Source0: %{name}-%{version}.tar.gz
 
 BuildRequires:  autoconf
