@@ -18,7 +18,7 @@
 
 # Process this file with autoconf to produce a configure script.
 AC_INIT(csync2, 2.1-0rc1, csync2@lists.linbit.com)
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 
 AC_CONFIG_SRCDIR(csync2.c)
 AM_CONFIG_HEADER(config.h)

@@ -27,6 +27,7 @@ my_defaults=(
 	--prefix=/usr
 	--localstatedir=/var
 	--sysconfdir=/etc/csync2/
+	--disable-sqlite
 	--enable-sqlite3
 	--enable-mysql
 	--enable-postgres
