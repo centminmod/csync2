@@ -12,14 +12,14 @@ The csync2 git tree can be found at https://github.com/LINBIT/csync2/.
 
 # Documentation
 
-You should definitely read the documentation before trying to setup csync2, + see <<doc/csync2#>>
+You should definitely read the documentation before trying to setup csync2, see [doc/csync2.adoc](https://github.com/centminmod/csync2/blob/2.1/doc/csync2.adoc)
 
 # Copyright
 
-csync2 - cluster synchronization tool, 2nd generation
-Copyright © 2004 - 2013  LINBIT Information Technologies GmbH
-Copyright © 2008 - 2018  [LINBIT HA Solutions GmbH](https://www.linbit.com/)
-see also [AUTHORS](https://github.com/centminmod/csync2/blob/2.1/AUTHORS.adoc)
+* csync2 - cluster synchronization tool, 2nd generation
+* Copyright © 2004 - 2013  LINBIT Information Technologies GmbH
+* Copyright © 2008 - 2018  [LINBIT HA Solutions GmbH](https://www.linbit.com/)
+* see also [AUTHORS](https://github.com/centminmod/csync2/blob/2.1/AUTHORS.adoc)
 
 # License
 
@@ -35,7 +35,6 @@ It is recommended to subscribe to this list if you are using csync2 in
 production environments.
 
 # What's New In Csync2 2.1.1
-
 
 ## 1. Atomic File Patching
 
