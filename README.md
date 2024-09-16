@@ -1,6 +1,6 @@
 # About csync2 2.1.1 fork
 
-This Csync2 branch fork https://github.com/centminmod/csync2/tree/2.1 code is based on fork at https://github.com/erlandl4g/csync2 which in turn is forked from https://github.com/Shotaos/csync2. In addition, also added MariaDB MySQL support to accompany 4+ yr old Oracle MySQL and PostgreSQL database support and default sqlite3 support. See [below for full details](#whats-new-in-csync2-211).
+This Csync2 branch fork https://github.com/centminmod/csync2/tree/2.1 code is based on fork at https://github.com/erlandl4g/csync2 which in turn is forked from https://github.com/Shotaos/csync2 - where both forks are from the same developer, [erlandl4g](https://github.com/erlandl4g) - who had [hired and paid 4 developers to make the changes](https://github.com/LINBIT/csync2/pull/36) and offered the code improvements as a pull request to official Csync2 repository but never had the code officially merged. In addition, I also added MariaDB MySQL support to accompany 4+ yr old Oracle MySQL and PostgreSQL database support and default sqlite3 support. See [below for full details](#whats-new-in-csync2-211).
 
 # About csync
 
