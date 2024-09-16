@@ -92,6 +92,25 @@ cert:
 		-out $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.pem
 	rm $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr
 
+cert-ecdsa:
+	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
+	openssl ecparam -genkey -name prime256v1 -out $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem
+	yes '' | openssl req -new -key $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem \
+		-out $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr
+	openssl x509 -req -days 600 -in $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr \
+		-signkey $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem \
+		-out $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.pem
+	rm $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr
+
+cert-ed25519:
+	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
+	openssl genpkey -algorithm ED25519 -out $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem
+	yes '' | openssl req -new -key $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem \
+		-out $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr
+	openssl x509 -req -days 600 -in $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr \
+		-signkey $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem \
+		-out $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.pem
+	rm $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr
 
 ## hack for building private librsync and private libsqlite ##
 
