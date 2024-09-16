@@ -2,23 +2,15 @@
 
 This Csync2 branch fork https://github.com/centminmod/csync2/tree/2.1 code is based on fork at https://github.com/erlandl4g/csync2 which in turn is forked from https://github.com/Shotaos/csync2. In addition, also added MariaDB MySQL support to accompany 4+ yr old Oracle MySQL and PostgreSQL database support and default sqlite3 support. See [below for full details](#whats-new-in-csync2-211).
 
-# About csync2
+Csync2 is a cluster synchronization tool. It can be used to keep files on multiple hosts in a cluster in sync. Csync2 can handle complex setups with much more than just 2 hosts, handle file deletions and can detect conflicts.
 
-Csync2 is a cluster synchronization tool. It can be used to keep files on
-multiple hosts in a cluster in sync. Csync2 can handle complex setups with
-much more than just 2 hosts, handle file deletions and can detect conflicts.
-
-It is expedient for HA-clusters, HPC-clusters, COWs and server farms. If
-you are looking for a tool to sync your laptop with your workstation, you
-better have a look at Unison (http://www.cis.upenn.edu/~bcpierce/unison/)
-too.
+It is expedient for HA-clusters, HPC-clusters, COWs and server farms. If you are looking for a tool to sync your laptop with your workstation, you better have a look at Unison (http://www.cis.upenn.edu/~bcpierce/unison/) too.
 
 The csync2 git tree can be found at https://github.com/LINBIT/csync2/.
 
 # Documentation
 
-You should definitely read the documentation before trying to setup csync2, +
-see <<doc/csync2#>>
+You should definitely read the documentation before trying to setup csync2, + see <<doc/csync2#>>
 
 # Copyright
 
