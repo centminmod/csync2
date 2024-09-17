@@ -8,8 +8,9 @@
 # --- SETTINGS ---
 
 file_events="move,delete,attrib,create,close_write,modify" # File events to monitor - no spaces in this list
-queue_file=/home/learn4gd/tmp/inotify_queue.log            # File used for event queue
-csync_log=/home/learn4gd/tmp/csync_server.log              # File used for monitoring csync server timings
+queue_file=/home/csync2-inotify/tmp/inotify_queue.log            # File used for event queue
+csync_log=/home/csync2-inotify/tmp/csync_server.log              # File used for monitoring csync server timings
+mkdir -p /home/csync2-inotify/tmp
 
 check_interval=0.5                   # Seconds between queue checks - fractions allowed
 full_sync_interval=$((60*60))        # Seconds between a regular full sync - zero to turn off
@@ -124,18 +125,23 @@ truncate -s 0 $queue_file
 # Monitor for events in the background and add altered files to queue file
 while read -r file
 do
-	# Check if excluded
-	for excluded in "${excludes[@]}"
-	do
-		if [[ $file == $excluded* ]]
-		then
-			# Excluded - skip this file and return to inotifywait
-			continue 2
+		# Exclude temporary files and specific patterns but allow hidden files
+		if [[ "$file" =~ .*~ ]] || [[ "$file" =~ .*.swp ]] || [[ "$file" =~ .*\.txt\..* ]]; then
+		    continue
 		fi
-	done
 
-	# Add file to queue
-	echo "$file" >> $queue_file
+    # Check if excluded
+    for excluded in "${excludes[@]}"
+    do
+        if [[ $file == $excluded* ]]
+        then
+            # Excluded - skip this file and return to inotifywait
+            continue 2
+        fi
+    done
+
+    # Add file to queue
+    echo "$file" >> $queue_file
 
 done < <(inotifywait --monitor --recursive --event $file_events --format "%w%f" "${includes[@]}") &
 
