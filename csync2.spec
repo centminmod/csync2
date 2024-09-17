@@ -79,6 +79,8 @@ install -D -m 644 csync2@.service %{buildroot}%{_unitdir}/csync2@.service
 install -m 644 AUTHORS %{buildroot}%{_docdir}/csync2/AUTHORS
 install -m 644 AUTHORS.adoc %{buildroot}%{_docdir}/csync2/AUTHORS.adoc
 install -m 644 README.md %{buildroot}%{_docdir}/csync2/README.md
+install -m 644 inotify_trigger_script/inotify_csync.sh %{buildroot}%{_docdir}/csync2/inotify_csync.sh
+install -m 644 inotify_trigger_script/inotify_csync_man.txt %{buildroot}%{_docdir}/csync2/inotify_csync_man.txt
 
 %make_install
 mkdir -p %{buildroot}%{_localstatedir}/lib/csync2
@@ -111,6 +113,8 @@ fi
 %doc %{_docdir}/csync2/csync2-quickstart.adoc
 %doc %{_docdir}/csync2/csync2.adoc
 %doc %{_docdir}/csync2/README.md
+%doc %{_docdir}/csync2/inotify_csync.sh
+%doc %{_docdir}/csync2/inotify_csync_man.txt
 %doc %{_mandir}/man1/csync2.1.gz
 %{_sbindir}/csync2
 %{_sbindir}/csync2-compare
