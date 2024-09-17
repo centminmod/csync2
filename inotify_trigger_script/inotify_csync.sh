@@ -29,7 +29,7 @@ csync_opts=("$@")
 # --- VERSION ---
 
 echo "CSync Controller"
-echo "Version 13 Jan 2022 22:22"
+echo "Version 18 Sep 2024"
 echo
 echo "Passed options: ${csync_opts[*]}"
 echo
@@ -47,15 +47,15 @@ echo "  parallel_updates              = $parallel_updates"
 server_opts=()
 if [[ $* =~ -N[[:space:]]?([[:alnum:]\.]+) ]]  # hostname
 then
-	this_node=${BASH_REMATCH[1]}
-	server_opts+=(-N "$this_node") # added as two elements
+    this_node=${BASH_REMATCH[1]}
+    server_opts+=(-N "$this_node") # added as two elements
 else
-	echo "*** WARNING: No hostname specified ***"
-	sleep 2
+    echo "*** WARNING: No hostname specified ***"
+    sleep 2
 fi
 if [[ $* =~ -D[[:space:]]?([[:graph:]]+) ]]    # database path
 then
-	server_opts+=(-D "${BASH_REMATCH[1]}")
+    server_opts+=(-D "${BASH_REMATCH[1]}")
 fi
 
 echo
@@ -70,8 +70,8 @@ csync_pid=$!
 sleep 0.5
 if ! ps --pid $csync_pid > /dev/null
 then
-	echo "Failed to start csync server"
-	exit 1
+    echo "Failed to start csync server"
+    exit 1
 fi
 
 # Stop background csync server on exit
@@ -85,20 +85,20 @@ echo "  Running..."
 # Parse csync2 config file for included and excluded locations
 while read -r key value
 do
-	# Ignore comments and blank lines
-	if [[ ! $key =~ ^\ *# && -n $key ]]
-	then
-		if [[ $key == "host" && $value != $this_node* ]]
-		then
-			nodes+=("${value%;}")
-		elif [[ $key == "include" ]]
-		then
-			includes+=("${value%;}")
-		elif [[ $key == "exclude" ]]
-		then
-			excludes+=("${value%;}")
-		fi
-	fi
+    # Ignore comments and blank lines
+    if [[ ! $key =~ ^\ *# && -n $key ]]
+    then
+        if [[ $key == "host" && $value != $this_node* ]]
+        then
+            nodes+=("${value%;}")
+        elif [[ $key == "include" ]]
+        then
+            includes+=("${value%;}")
+        elif [[ $key == "exclude" ]]
+        then
+            excludes+=("${value%;}")
+        fi
+    fi
 done < "$cfg_path/$cfg_file"
 
 echo
@@ -109,8 +109,8 @@ echo "  Excludes: ${excludes[*]}"
 
 if [[ ${#includes[@]} -eq 0 ]]
 then
-	echo "No include locations found"
-	exit 1
+    echo "No include locations found"
+    exit 1
 fi
 
 
@@ -125,11 +125,6 @@ truncate -s 0 $queue_file
 # Monitor for events in the background and add altered files to queue file
 while read -r file
 do
-		# Exclude temporary files and specific patterns but allow hidden files
-		if [[ "$file" =~ .*~ ]] || [[ "$file" =~ .*.swp ]] || [[ "$file" =~ .*\.txt\..* ]]; then
-		    continue
-		fi
-
     # Check if excluded
     for excluded in "${excludes[@]}"
     do
@@ -159,65 +154,65 @@ echo "  Running..."
 # Wait until csync server is quiet
 function csync_server_wait()
 {
-	# Wait until the end timestamp record appears in the last log line or if the file is empty
-	until tail --lines=1 $csync_log | grep --quiet TOTALTIME || [[ ! -s $csync_log ]]
-	do
-		echo "...waiting for csync server..."
-		sleep $check_interval
-	done
+    # Wait until the end timestamp record appears in the last log line or if the file is empty
+    until tail --lines=1 $csync_log | grep --quiet TOTALTIME || [[ ! -s $csync_log ]]
+    do
+        echo "...waiting for csync server..."
+        sleep $check_interval
+    done
 }
 
 
 # Run a full check and sync operation
 function csync_full_sync()
 {
-	echo
-	echo "* FULL SYNC"
+    echo
+    echo "* FULL SYNC"
 
-	# First wait until csync server is quiet
-	csync_server_wait
+    # First wait until csync server is quiet
+    csync_server_wait
 
-	if (( parallel_updates ))
-	then
-		# Check files separately from parallel update
-		echo "  Checking all files"
-		csync2 "${csync_opts[@]}" -cr "/"
+    if (( parallel_updates ))
+    then
+        # Check files separately from parallel update
+        echo "  Checking all files"
+        csync2 "${csync_opts[@]}" -cr "/"
 
-		# Update each node in parallel
-		update_pids=()
-		for node in "${nodes[@]}"
-		do
-			echo "  Updating $node"
-			csync2 "${csync_opts[@]}" -ub -P "$node" &
-			update_pids+=($!)
-		done
-		wait "${update_pids[@]}"
-	else
-		# Check nodes in sequence
-		echo "  Checking and updating peers sequentially"
-		csync2 "${csync_opts[@]}" -x
-	fi
+        # Update each node in parallel
+        update_pids=()
+        for node in "${nodes[@]}"
+        do
+            echo "  Updating $node"
+            csync2 "${csync_opts[@]}" -ub -P "$node" &
+            update_pids+=($!)
+        done
+        wait "${update_pids[@]}"
+    else
+        # Check nodes in sequence
+        echo "  Checking and updating peers sequentially"
+        csync2 "${csync_opts[@]}" -x
+    fi
 
-	last_full_sync=$(date +%s)
-	echo "  Done"
+    last_full_sync=$(date +%s)
+    echo "  Done"
 }
 
 
 # Reset queue
 function reset_queue()
 {
-	echo
-	echo "* RESET QUEUE LOG"
+    echo
+    echo "* RESET QUEUE LOG"
 
-	# Reset queue log file
-	truncate -s 0 $queue_file
-	queue_line_pos=1
+    # Reset queue log file
+    truncate -s 0 $queue_file
+    queue_line_pos=1
 
-	# Run a full sync in case inotify triggered during reset
-	csync_full_sync
+    # Run a full sync in case inotify triggered during reset
+    csync_full_sync
 
-	# Reset csync server log too
-	truncate -s 0 $csync_log
+    # Reset csync server log too
+    truncate -s 0 $csync_log
 }
 
 
@@ -232,83 +227,83 @@ queue_line_pos=1
 last_full_sync=$(date +%s)
 while true
 do
-	# Delay between updates to allow for batches of inotify events to be gathered
-	sleep $check_interval
+    # Delay between updates to allow for batches of inotify events to be gathered
+    sleep $check_interval
 
-	# Make array starting from last read position in queue file
-	mapfile -t file_list < <(tail --lines=+$queue_line_pos $queue_file)
+    # Make array starting from last read position in queue file
+    mapfile -t file_list < <(tail --lines=+$queue_line_pos $queue_file)
 
-	if [[ ${#file_list[@]} -eq 0 ]]
-	then
-		# No new entries - quiet time
+    if [[ ${#file_list[@]} -eq 0 ]]
+    then
+        # No new entries - quiet time
 
-		# Check for reset
-		if [[ $queue_line_pos -ge $num_lines_until_reset ]]
-		then
-			reset_queue
+        # Check for reset
+        if [[ $queue_line_pos -ge $num_lines_until_reset ]]
+        then
+            reset_queue
 
-		# Check for regular full sync
-		elif (( full_sync_interval && ($(date +%s) - last_full_sync) > full_sync_interval ))
-		then
-			csync_full_sync
-		fi
+        # Check for regular full sync
+        elif (( full_sync_interval && ($(date +%s) - last_full_sync) > full_sync_interval ))
+        then
+            csync_full_sync
+        fi
 
-		# Jump back to sleep
-		continue
-	fi
+        # Jump back to sleep
+        continue
+    fi
 
-	echo
-	echo "* PROCESSING QUEUE (line $queue_line_pos)"
+    echo
+    echo "* PROCESSING QUEUE (line $queue_line_pos)"
 
-	# Advance queue file position
-	((queue_line_pos+=${#file_list[@]}))
+    # Advance queue file position
+    ((queue_line_pos+=${#file_list[@]}))
 
-	# Remove duplicates
-	mapfile -t csync_files < <(printf "%s\n" "${file_list[@]}" | sort -u)
+    # Remove duplicates
+    mapfile -t csync_files < <(printf "%s\n" "${file_list[@]}" | sort -u)
 
-	# DEBUG: Output files processed in each cycle
-	# printf "%s\n" "${csync_files[@]}" >> "/tmp/csync_$(date +%s%3N).log"
+    # DEBUG: Output files processed in each cycle
+    # printf "%s\n" "${csync_files[@]}" >> "/tmp/csync_$(date +%s%3N).log"
 
-	# Check number of files in this batch
-	if [[ ${#csync_files[@]} -ge $num_batched_changes_threshold ]]
-	then
-		# Large batch - run full sync and reset
-		# This avoids breaching any max file argument limits and also acts as a safety net if inotify misses events when there are many changing files
-		echo "* LARGE BATCH (${#csync_files[@]} files)"
+    # Check number of files in this batch
+    if [[ ${#csync_files[@]} -ge $num_batched_changes_threshold ]]
+    then
+        # Large batch - run full sync and reset
+        # This avoids breaching any max file argument limits and also acts as a safety net if inotify misses events when there are many changing files
+        echo "* LARGE BATCH (${#csync_files[@]} files)"
 
-		csync_full_sync
+        csync_full_sync
 
-		# Jump back to sleep
-		continue
-	fi
+        # Jump back to sleep
+        continue
+    fi
 
-	# Wait until csync server is quiet
-	csync_server_wait
+    # Wait until csync server is quiet
+    csync_server_wait
 
-	# Process files by sending csync commands
-	# Split into two stages so that outstanding dirty files can be processed regardless of when or where they were marked
+    # Process files by sending csync commands
+    # Split into two stages so that outstanding dirty files can be processed regardless of when or where they were marked
 
-	#   1. Check and possibly mark queued files as dirty - recursive so nested dirs are handled even if inotify misses them
-	echo "  Checking ${#csync_files[@]} files"
-	csync2 "${csync_opts[@]}" -cr "${csync_files[@]}"
+    #   1. Check and possibly mark queued files as dirty - recursive so nested dirs are handled even if inotify misses them
+    echo "  Checking ${#csync_files[@]} files"
+    csync2 "${csync_opts[@]}" -cr "${csync_files[@]}"
 
-	#   2. Update outstanding dirty files on peers
-	if (( parallel_updates ))
-	then
-		# Update each node in parallel
-		update_pids=()
-		for node in "${nodes[@]}"
-		do
-			echo "  Updating $node"
-			csync2 "${csync_opts[@]}" -ub -P "$node" &
-			update_pids+=($!)
-		done
-		wait "${update_pids[@]}"
-	else
-		# Update nodes in sequence
-		echo "  Updating peers sequentially"
-		csync2 "${csync_opts[@]}" -u
-	fi
+    #   2. Update outstanding dirty files on peers
+    if (( parallel_updates ))
+    then
+        # Update each node in parallel
+        update_pids=()
+        for node in "${nodes[@]}"
+        do
+            echo "  Updating $node"
+            csync2 "${csync_opts[@]}" -ub -P "$node" &
+            update_pids+=($!)
+        done
+        wait "${update_pids[@]}"
+    else
+        # Update nodes in sequence
+        echo "  Updating peers sequentially"
+        csync2 "${csync_opts[@]}" -u
+    fi
 
-	echo "  Done"
+    echo "  Done"
 done
